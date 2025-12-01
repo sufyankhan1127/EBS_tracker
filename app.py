@@ -1,5 +1,4 @@
-﻿@
-import os
+﻿import os
 import json
 import datetime
 from flask import Flask, render_template, request, redirect, url_for, flash, Response, jsonify
@@ -9,7 +8,8 @@ from file_handler import log_error, generate_csv, generate_pdf, backup_data
 
 app = Flask(__name__)
 app.secret_key = "super_secret_key_for_dev"
-# Use Environment Variable for Cloud, fallback to local
+
+# Cloud Connection (Render)
 app.config["MONGO_URI"] = os.environ.get("MONGO_URI", "mongodb://localhost:27017/finance_tracker")
 
 init_db(app)
@@ -30,7 +30,8 @@ def dashboard():
     try:
         db = get_db()
         if db is None:
-            raise Exception("Database not connected. Check MONGO_URI.")
+            # If DB is not connected, show empty dashboard instead of crashing
+            raise Exception("Database not connected")
 
         month_filter = request.args.get("month", datetime.datetime.now().strftime("%Y-%m"))
         
@@ -62,8 +63,7 @@ def dashboard():
                                budget_pct=budget_pct, chart_data=chart_data, goals=goals)
     except Exception as e:
         log_error(str(e))
-        flash(f"Error loading dashboard: {str(e)}", "danger")
-        # FIX: Provide default values so the page does not crash
+        # Return a working page with zeros if DB fails
         return render_template("dashboard.html", 
                                income=0, expense=0, balance=0, 
                                budget_limit=0, budget_pct=0, 
@@ -224,4 +224,4 @@ def restore_backup():
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
-@
+    
